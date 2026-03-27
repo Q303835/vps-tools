@@ -2,93 +2,172 @@
 
 set -e
 
-# ===== 基础变量 =====
-GO_INSTALL_DIR="/usr/local/go"
+# ===== 配置 =====
+INSTALL_ROOT="/usr/local"
+USER_ROOT="$HOME/.local/go"
 PROFILE_FILE="/etc/profile"
+USER_PROFILE="$HOME/.bashrc"
 
-# ===== 检测架构 =====
+# ===== 架构检测 =====
 ARCH=$(uname -m)
-
 case $ARCH in
-    x86_64)
-        GOARCH="amd64"
-        ;;
-    aarch64 | arm64)
-        GOARCH="arm64"
-        ;;
-    *)
-        echo "❌ 不支持的架构: $ARCH"
-        exit 1
-        ;;
+    x86_64) GOARCH="amd64" ;;
+    aarch64 | arm64) GOARCH="arm64" ;;
+    *) echo "❌ 不支持架构: $ARCH"; exit 1 ;;
 esac
 
-echo "✅ 当前架构: $GOARCH"
+# ===== 选择安装方式 =====
+choose_install_path() {
+    echo ""
+    echo "安装方式："
+    echo "1) 系统级安装 (/usr/local) [需要 sudo]"
+    echo "2) 用户级安装 (~/.local/go)"
+    read -p "选择 [1-2]: " MODE
 
-# ===== 功能菜单 =====
-echo ""
-echo "请选择操作："
-echo "1) 安装 Go"
-echo "2) 卸载 Go"
-read -p "输入选项 [1-2]: " ACTION
-
-# ===== 卸载函数 =====
-uninstall_go() {
-    echo "🗑️ 正在卸载 Go..."
-
-    rm -rf $GO_INSTALL_DIR
-
-    # 删除环境变量
-    sed -i '/\/usr\/local\/go\/bin/d' $PROFILE_FILE
-
-    echo "✅ Go 已卸载完成"
+    if [ "$MODE" == "1" ]; then
+        INSTALL_DIR="$INSTALL_ROOT"
+        PROFILE="$PROFILE_FILE"
+        NEED_SUDO="sudo"
+    else
+        INSTALL_DIR="$USER_ROOT"
+        PROFILE="$USER_PROFILE"
+        NEED_SUDO=""
+    fi
 }
 
-# ===== 安装函数 =====
-install_go() {
-    read -p "请输入要安装的 Go 版本 (例如 1.22.3): " GOVERSION
+# ===== 获取版本列表 =====
+get_versions() {
+    echo "📡 获取 Go 版本列表..."
+    curl -s https://go.dev/dl/ | grep -o 'go[0-9.]*\.linux-'$GOARCH'\.tar\.gz' | sed 's/\.linux.*//' | sort -Vr | uniq | head -n 10
+}
 
-    if [ -z "$GOVERSION" ]; then
-        echo "❌ 版本不能为空"
-        exit 1
+# ===== 选择版本 =====
+choose_version() {
+    echo ""
+    echo "可用版本（最新10个）："
+    VERSIONS=($(get_versions))
+
+    for i in "${!VERSIONS[@]}"; do
+        echo "$((i+1))) ${VERSIONS[$i]}"
+    done
+
+    echo "0) 手动输入版本"
+    read -p "选择版本: " NUM
+
+    if [ "$NUM" == "0" ]; then
+        read -p "输入版本号 (如 1.22.3): " GOVERSION
+        GOVERSION="go$GOVERSION"
+    else
+        GOVERSION="${VERSIONS[$((NUM-1))]}"
     fi
+}
 
-    FILE_NAME="go${GOVERSION}.linux-${GOARCH}.tar.gz"
-    DOWNLOAD_URL="https://go.dev/dl/${FILE_NAME}"
+# ===== 下载方式 =====
+choose_mirror() {
+    echo ""
+    echo "下载源："
+    echo "1) 官方 (go.dev)"
+    echo "2) 国内加速 (golang.google.cn)"
+    read -p "选择 [1-2]: " SRC
 
-    echo "⬇️ 下载: $DOWNLOAD_URL"
+    FILE="${GOVERSION}.linux-${GOARCH}.tar.gz"
 
-    wget -q --show-progress $DOWNLOAD_URL -O /tmp/$FILE_NAME || {
-        echo "❌ 下载失败，请检查版本号"
+    if [ "$SRC" == "2" ]; then
+        URL="https://golang.google.cn/dl/$FILE"
+    else
+        URL="https://go.dev/dl/$FILE"
+    fi
+}
+
+# ===== 安装 =====
+install_go() {
+    choose_install_path
+    choose_version
+    choose_mirror
+
+    echo ""
+    echo "⬇️ 下载 $URL"
+    wget -q --show-progress "$URL" -O /tmp/$FILE || {
+        echo "❌ 下载失败"
         exit 1
     }
 
-    echo "🧹 清理旧版本..."
-    rm -rf $GO_INSTALL_DIR
+    TARGET_DIR="$INSTALL_DIR/$GOVERSION"
 
-    echo "📦 解压安装..."
-    tar -C /usr/local -xzf /tmp/$FILE_NAME
+    echo "📦 安装到 $TARGET_DIR"
+    $NEED_SUDO mkdir -p "$TARGET_DIR"
+    $NEED_SUDO tar -C "$TARGET_DIR" --strip-components=1 -xzf /tmp/$FILE
 
-    echo "🔧 配置环境变量..."
+    echo "🔗 设置当前版本"
+    $NEED_SUDO ln -sfn "$TARGET_DIR" "$INSTALL_DIR/go"
 
-    # 避免重复写入
-    grep -q "/usr/local/go/bin" $PROFILE_FILE || echo "export PATH=\$PATH:/usr/local/go/bin" >> $PROFILE_FILE
+    echo "🔧 配置 PATH"
 
-    source $PROFILE_FILE
+    grep -q "$INSTALL_DIR/go/bin" "$PROFILE" || \
+    echo "export PATH=\$PATH:$INSTALL_DIR/go/bin" >> "$PROFILE"
 
-    echo "🎉 安装完成！"
-    go version
+    source "$PROFILE" 2>/dev/null || true
+
+    echo "🎉 安装完成："
+    $INSTALL_DIR/go/bin/go version
 }
 
-# ===== 执行 =====
-case $ACTION in
-    1)
-        install_go
-        ;;
-    2)
-        uninstall_go
-        ;;
-    *)
-        echo "❌ 无效选项"
+# ===== 卸载 =====
+uninstall_go() {
+    choose_install_path
+
+    echo ""
+    echo "⚠️ 将删除所有 Go 版本！确认？(y/n)"
+    read CONFIRM
+
+    if [[ "$CONFIRM" != "y" ]]; then
+        exit 0
+    fi
+
+    $NEED_SUDO rm -rf "$INSTALL_DIR/go" "$INSTALL_DIR"/go*
+
+    sed -i '/go\/bin/d' "$PROFILE" 2>/dev/null || true
+
+    echo "✅ 已卸载"
+}
+
+# ===== 切换版本 =====
+switch_version() {
+    choose_install_path
+
+    echo ""
+    echo "📂 已安装版本："
+    ls "$INSTALL_DIR" | grep '^go[0-9]' || {
+        echo "❌ 没有安装任何版本"
         exit 1
-        ;;
+    }
+
+    read -p "输入要切换的版本 (如 go1.22.3): " VER
+
+    if [ ! -d "$INSTALL_DIR/$VER" ]; then
+        echo "❌ 版本不存在"
+        exit 1
+    fi
+
+    $NEED_SUDO ln -sfn "$INSTALL_DIR/$VER" "$INSTALL_DIR/go"
+
+    echo "🔄 已切换"
+    $INSTALL_DIR/go/bin/go version
+}
+
+# ===== 菜单 =====
+echo ""
+echo "====== Go 管理脚本 ======"
+echo "1) 安装 Go"
+echo "2) 卸载 Go"
+echo "3) 切换版本"
+echo ""
+
+read -p "选择操作: " ACTION
+
+case $ACTION in
+    1) install_go ;;
+    2) uninstall_go ;;
+    3) switch_version ;;
+    *) echo "❌ 无效操作" ;;
 esac
