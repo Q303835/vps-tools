@@ -120,7 +120,7 @@ send_gotify() {
         -F "priority=5"
 }
 
-# ================= 逻辑触发区域（包含新增多档位） =================
+# ================= 逻辑触发区域 =================
 
 # 1. 达到 96% 触发
 if [ "$PERCENTAGE" -ge 96 ]; then
@@ -133,6 +133,7 @@ if [ "$PERCENTAGE" -ge 96 ]; then
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_80.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_70.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_50.txt"
+        echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_10.txt"
     fi
 
 # 2. 达到 90% 触发
@@ -145,6 +146,7 @@ elif [ "$PERCENTAGE" -ge 90 ]; then
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_80.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_70.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_50.txt"
+        echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_10.txt"
     fi
 
 # 3. 达到 85% 触发
@@ -156,6 +158,7 @@ elif [ "$PERCENTAGE" -ge 85 ]; then
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_80.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_70.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_50.txt"
+        echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_10.txt"
     fi
 
 # 4. 达到 80% 触发
@@ -166,6 +169,7 @@ elif [ "$PERCENTAGE" -ge 80 ]; then
         echo "$CURRENT_MONTH" > "$STATUS_FILE_80"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_70.txt"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_50.txt"
+        echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_10.txt"
     fi
 
 # 5. 达到 70% 触发
@@ -175,6 +179,7 @@ elif [ "$PERCENTAGE" -ge 70 ]; then
         send_gotify
         echo "$CURRENT_MONTH" > "$STATUS_FILE_70"
         echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_50.txt"
+        echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_10.txt"
     fi
 
 # 6. 达到 50% 触发
@@ -183,6 +188,15 @@ elif [ "$PERCENTAGE" -ge 50 ]; then
     if [ ! -f "$STATUS_FILE_50" ]; then
         send_gotify
         echo "$CURRENT_MONTH" > "$STATUS_FILE_50"
+        echo "$CURRENT_MONTH" > "/tmp/traffic_notified_${INTERFACE}_10.txt"
+    fi
+
+# 7. 达到 10% 触发 ，只用一个 fi 结尾)
+elif [ "$PERCENTAGE" -ge 10 ]; then
+    STATUS_FILE_10="/tmp/traffic_notified_${INTERFACE}_10.txt"
+    if [ ! -f "$STATUS_FILE_10" ]; then
+        send_gotify
+        echo "$CURRENT_MONTH" > "$STATUS_FILE_10"
     fi
 fi
 EOF
