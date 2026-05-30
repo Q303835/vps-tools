@@ -17,3 +17,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/m
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/aws_liuliang_jiankong.sh)
 ```
+### AWS流量2
+
+```
+bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/aws-ll.sh)
+```
