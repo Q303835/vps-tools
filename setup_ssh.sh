@@ -6,7 +6,7 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-echo "开始配置 SSH：注入公钥、允许 Root 登录、禁用密码登录..."
+echo "开始配置 SSH：清理云厂商拦截限制、注入公钥、允许 Root 登录、禁用密码登录..."
 
 # 2. 注入你的公钥到 root 目录
 PUB_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA51NEd+1MywhVybvI2LVWMIS2pSwOGznIkEcxcjLI1oNw4j4xx7O95Nmap5Lk0tJd9rQ1Etxvmvdl3xsqwa8aS3gxeRve4R4XmDZOw1P+zK+L4zX2LRMEDO5PlWtqSMBBsl9bBsMFO3CtEPaJjP8w+rRpaR2S4Dx+1YJ9gLdmmfv8uvMvbrgA2/LeDdIKzDNJRgzydzSFCkDj1g3OvKnWWDjFdF53ESYhFyh8HKDasmH64r7udcSzoW4eMz9uGbW1KbYi0gBqm5g53pp23byYFtDzKzboKIOc+aNpL7OfyYELZio64YkIdp1vYT51h4rivwqjOPrKyxHUcSZ2sleUQw=="
@@ -14,10 +14,16 @@ PUB_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA51NEd+1MywhVybvI2LVWMIS2pSwOGznIkEc
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
 
-# 将公钥追加写入（避免覆盖可能存在的其他有效密钥），并检查是否已存在
+# 【核心修改点】如果文件存在，精准删掉包含云厂商拦截警告（"Please login as the user"）的整行内容
+if [ -f /root/.ssh/authorized_keys ]; then
+    sed -i '/Please login as the user/d' /root/.ssh/authorized_keys
+    echo "-> 已检测并清除可能存在的云厂商 Root 登录拦截命令"
+fi
+
+# 检查纯净公钥是否已存在，不存在则追加写入
 grep -q -F "$PUB_KEY" /root/.ssh/authorized_keys 2>/dev/null || echo "$PUB_KEY" >> /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys
-echo "-> 公钥已成功写入 /root/.ssh/authorized_keys"
+echo "-> 纯净公钥已成功写入 /root/.ssh/authorized_keys"
 
 # 3. 修改 sshd_config 配置文件
 SSHD_CONFIG="/etc/ssh/sshd_config"
