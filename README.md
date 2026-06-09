@@ -9,7 +9,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/VPSbash/refs/heads/m
 ```
 ### SSH密钥登录
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_ssh.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_sshp.sh)
 ```
 ### 安装GO
 ```
