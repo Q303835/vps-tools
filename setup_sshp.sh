@@ -2,22 +2,28 @@
 
 # 1. 确保脚本以 root 权限运行
 if [ "$(id -u)" != "0" ]; then
-    echo "错误：此脚本必须以 root 权限运行。请使用 sudo ./setup_ssh.sh" 1>&2
+    echo "错误：此脚本必须以 root 权限运行。" 1>&2
     exit 1
 fi
 
-echo "开始配置 SSH：注入公钥、允许 Root 登录、禁用密码登录（包含清理子配置文件）..."
+echo "开始配置 SSH：注入多个公钥、允许 Root 登录、禁用密码登录..."
 
-# 2. 注入你的公钥到 root 目录
-PUB_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA51NEd+1MywhVybvI2LVWMIS2pSwOGznIkEcxcjLI1oNw4j4xx7O95Nmap5Lk0tJd9rQ1Etxvmvdl3xsqwa8aS3gxeRve4R4XmDZOw1P+zK+L4zX2LRMEDO5PlWtqSMBBsl9bBsMFO3CtEPaJjP8w+rRpaR2S4Dx+1YJ9gLdmmfv8uvMvbrgA2/LeDdIKzDNJRgzydzSFCkDj1g3OvKnWWDjFdF53ESYhFyh8HKDasmH64r7udcSzoW4eMz9uGbW1KbYi0gBqm5g53pp23byYFtDzKzboKIOc+aNpL7OfyYELZio64YkIdp1vYT51h4rivwqjOPrKyxHUcSZ2sleUQw=="
+# 2. 定义需要注入的公钥列表
+PUB_KEYS=(
+    "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA51NEd+1MywhVybvI2LVWMIS2pSwOGznIkEcxcjLI1oNw4j4xx7O95Nmap5Lk0tJd9rQ1Etxvmvdl3xsqwa8aS3gxeRve4R4XmDZOw1P+zK+L4zX2LRMEDO5PlWtqSMBBsl9bBsMFO3CtEPaJjP8w+rRpaR2S4Dx+1YJ9gLdmmfv8uvMvbrgA2/LeDdIKzDNJRgzydzSFCkDj1g3OvKnWWDjFdF53ESYhFyh8HKDasmH64r7udcSzoW4eMz9uGbW1KbYi0gBqm5g53pp23byYFtDzKzboKIOc+aNpL7OfyYELZio64YkIdp1vYT51h4rivwqjOPrKyxHUcSZ2sleUQw=="
+    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCk0bSnB28sJPaYGQ1QuVjdJKDctl6k6V10Hui5/B0phBEVnRhuPQEzn9p3t5wjA/PRNpcRyiknemXby6S6R2ad5L7/loZZU9Bfzcm57ew2ULG25tQ6lN1mSR6ROS6uBZDVicC5fc4RLgBAE4Ban+aBOA5uuKGjGTtvHv4EfGt+Xgn1ikUgD7yZHLWk0U0ISq09m9reObsT3+JJfqSf80AgskGgWuwc7y9n7PHtu/+u/ps8BkhWKzU5f4cJiVa8ELrpQ3ItWYk5hkQjMHMGB5PU1pIe7FKWfd9v93JqRSFZ6yXtP/s/0574x170D0DjHker/ABw5cX1c+yWtOZPkaAx AWS"
+    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMdwYVqG48ZMaGls8LKlZxZCWjnYUg/w53kLtw9RDTuyJru8QYDdTFs8INdOYJFUYBqkw+tA4SwMbc8k/0srJqn7QtuVp5D67h19NKbm4UOtz7O1BcJOIcn/R4ySbv/V8K1stEiqePCbLfGRynoFR5/FGZJxC4lY5QHS1mMFWF054+OI2m7D3XLc6iJHsB7vW+knEWEv9/77R70E4pAAfh0UMm899KNm4lrBjavr9yVQsQVZwkBtERD13yY6+YWCg7fp9dc5iSOsQ03w8WJWJ3EIHhrOVn9NmaFa1t31vf66GikOmavCYxvudnbb9+V4jVBFsr2L4TOp1jzz/qdWve8K0s9esjmsvh9B8CtbWCAt5WeOyXo8/ahpTYJbmHUGdQICV10ny21BlbNSyZd/gXLctNl2sXBNH4aO41gHVYZfXLmmvDnDiJlxSli1E2YyxuC1q27cyo5eYt99eZXrnOff+DxiRJGBLe6NH6V8Ac3ZobuLCil7oao9RARkSvtb0= Azure"
+)
 
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
 
-# 将公钥追加写入（避免覆盖可能存在的其他有效密钥），并检查是否已存在
-grep -q -F "$PUB_KEY" /root/.ssh/authorized_keys 2>/dev/null || echo "$PUB_KEY" >> /root/.ssh/authorized_keys
+# 循环写入公钥
+for key in "${PUB_KEYS[@]}"; do
+    grep -q -F "$key" /root/.ssh/authorized_keys 2>/dev/null || echo "$key" >> /root/.ssh/authorized_keys
+done
 chmod 600 /root/.ssh/authorized_keys
-echo "-> 公钥已成功写入 /root/.ssh/authorized_keys"
+echo "-> 所有公钥已成功写入 /root/.ssh/authorized_keys"
 
 # 3. 修改主 sshd_config 配置文件
 SSHD_CONFIG="/etc/ssh/sshd_config"
