@@ -11,7 +11,7 @@ NC='\033[0m' # 无颜色
 
 echo -e "${BLUE}=== 开始安装 Dockge ===${NC}"
 
-# 1. 权限检查（Dockge 及 Docker 操作通常需要 root 权限）
+# 1. 权限检查
 if [ "$EUID" -ne 0 ]; then
     echo -e "${YELLOW}提示: 请使用 sudo 或 root 用户运行此脚本。${NC}"
     exit 1
@@ -25,8 +25,6 @@ fi
 
 # 3. 创建 Stacks 目录和 Dockge 的数据目录
 echo -e "${BLUE}正在创建目录...${NC}"
-# 默认 Stacks 目录: /opt/stacks
-# Dockge 自身配置目录: /opt/dockge
 mkdir -p /opt/stacks /opt/dockge
 
 # 4. 进入 Dockge 工作目录
@@ -38,18 +36,24 @@ curl -sSL https://raw.githubusercontent.com/louislam/dockge/master/compose.yaml 
 
 # 6. 启动 Dockge 服务
 echo -e "${BLUE}正在启动 Dockge 容器...${NC}"
-
-# 优先使用现代的 'docker compose'，如果不支持则尝试旧版 'docker-compose'
 if docker compose version &> /dev/null; then
     docker compose up -d
 elif command -v docker-compose &> /dev/null; then
-    echo -e "${YELLOW}检测到旧版 docker-compose，正在使用旧版命令启动...${NC}"
     docker-compose up -d
 else
     echo -e "${YELLOW}未找到 docker compose 命令，请检查 Docker Compose 是否正确安装。${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}=== Dockge 安装并启动成功！ ===${NC}"
-echo -e "${GREEN}默认端口: 5001${NC}"
+# 7. 自动获取公网 IP 并打印访问链接
+echo -e "${BLUE}正在获取服务器公网 IP...${NC}"
+# 尝试通过 ip.sb 获取公网 IP，如果失败则尝试 ifconfig.me，再失败则留空
+SERVER_IP=$(curl -sS --max-time 5 ip.sb || curl -sS --max-time 5 ifconfig.me || echo "你的服务器IP")
+
+echo -e "\n${GREEN}===============================================${NC}"
+echo -e "${GREEN}===        Dockge 安装并启动成功！          ===${NC}"
+echo -e "${GREEN}===============================================${NC}"
 echo -e "${GREEN}默认 Stacks 目录: /opt/stacks${NC}"
+echo -e "${GREEN}请通过以下链接访问 Dockge 后台进行配置:${NC}"
+echo -e "${YELLOW}http://${SERVER_IP}:5001${NC}"
+echo -e "${GREEN}===============================================${NC}"
