@@ -15,10 +15,15 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads
 ```
 bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/VPSbash/refs/heads/main/set-name.sh)
 ```
-### SSH密钥登录
+### SSH_仅密钥登录
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_sshp.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_ssh-only-Pubkey.sh)
 ```
+### SSH_密码+密钥登录
+```
+bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_ssh-password.sh)
+```
+
 ### 安装GO
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/install_go.sh)
