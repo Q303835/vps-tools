@@ -61,7 +61,7 @@ cp $SSHD_CONFIG "${SSHD_CONFIG}.bak_$(date +%F_%T)"
 sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' $SSHD_CONFIG
 grep -q "^PermitRootLogin yes" $SSHD_CONFIG || echo "PermitRootLogin yes" >> $SSHD_CONFIG
 
-# 禁用密码登录
+# 允许密码登录
 sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' $SSHD_CONFIG
 grep -q "^PasswordAuthentication yes" $SSHD_CONFIG || echo "PasswordAuthentication yes" >> $SSHD_CONFIG
 
