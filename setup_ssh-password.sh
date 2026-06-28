@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# 0. 检查是否带有 -y 参数 (用于跳过等待)
+AUTO_YES=0
+if [ "$1" == "-y" ]; then
+    AUTO_YES=1
+fi
+
 # 1. 确保脚本以 root 权限运行
 if [ "$(id -u)" != "0" ]; then
     echo "错误：此脚本必须以 root 权限运行。" 1>&2
@@ -7,8 +13,31 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 echo "开始配置 SSH：清理云镜像拦截、规范目录、注入多个公钥、允许 Root 登录、允许密码登录..."
+echo "⚠️ 警告：请确保你已经设置了root密码。如未设置或遗忘，请立即运行 passwd root 设置你的高强度密码"
+echo "⚠️ 警告：看见passwd: password updated successfully 表示密码修改成功"
 
-# 2. 定义需要注入的公钥列表（已加入你的最新 ed25519 纯净公钥）
+# 1.5 倒计时与中断逻辑
+if [ "$AUTO_YES" -eq 0 ]; then
+    echo ""
+    for (( i=8; i>0; i-- )); do
+        # 使用 \r 回到行首，实现动态倒数效果
+        printf "\r脚本将在 %s 秒后继续执行。按任意键中止脚本以便去设置密码..." "$i"
+        # 每次循环等待 1 秒，捕获任意 1 个字符的输入
+        read -t 1 -n 1 input
+        
+        # 判断 read 的退出状态码（0代表用户输入了按键）
+        if [ $? -eq 0 ]; then
+            echo -e "\n\n[操作取消] 脚本已暂停并退出。请设置完密码后重新运行。"
+            echo "提示：如果已准备好，可添加 -y 参数直接运行 (例如: bash script.sh -y)"
+            exit 0
+        fi
+    done
+    echo -e "\n\n[时间到] 开始执行配置..."
+else
+    echo -e "\n[检测到 -y 参数] 跳过等待，直接执行配置..."
+fi
+
+# 2. 定义需要注入的公钥列表
 PUB_KEYS=(
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKB4ddzNxWtYCXvzlvVEYeDM8rGpMcT9gR8nyRzKkhP5 lxy.me"
     "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA51NEd+1MywhVybvI2LVWMIS2pSwOGznIkEcxcjLI1oNw4j4xx7O95Nmap5Lk0tJd9rQ1Etxvmvdl3xsqwa8aS3gxeRve4R4XmDZOw1P+zK+L4zX2LRMEDO5PlWtqSMBBsl9bBsMFO3CtEPaJjP8w+rRpaR2S4Dx+1YJ9gLdmmfv8uvMvbrgA2/LeDdIKzDNJRgzydzSFCkDj1g3OvKnWWDjFdF53ESYhFyh8HKDasmH64r7udcSzoW4eMz9uGbW1KbYi0gBqm5g53pp23byYFtDzKzboKIOc+aNpL7OfyYELZio64YkIdp1vYT51h4rivwqjOPrKyxHUcSZ2sleUQw== Google"
@@ -18,25 +47,22 @@ PUB_KEYS=(
 
 AUTH_KEYS="/root/.ssh/authorized_keys"
 
-# 3. 确保 /root 目录自身及 .ssh 权限规范（防止出现 bad ownership or modes 报错）
+# 3. 确保 /root 目录自身及 .ssh 权限规范
 chmod 700 /root
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
 
-# 4. 【关键修复 1】执行初始化清理：如果文件已存在，直接精准剔除云厂商整行强导向拦截命令
+# 4. 执行初始化清理
 if [ -f "$AUTH_KEYS" ]; then
     sed -i '/Please login as the user/d' "$AUTH_KEYS"
     sed -i '/no-port-forwarding/d' "$AUTH_KEYS"
     echo "-> 已成功清除文件中可能存在的旧厂商拦截策略"
 fi
 
-# 5. 循环安全写入公钥（精确排重）
+# 5. 循环安全写入公钥
 echo "-> 开始检查并注入公钥列表..."
 for key in "${PUB_KEYS[@]}"; do
-    # 提取备注，方便输出日志
     note=$(echo "$key" | awk '{print $NF}')
-    
-    # 检查该公钥是否已在文件中存在
     grep -q -F "$key" "$AUTH_KEYS" 2>/dev/null
     if [ $? -ne 0 ]; then
         echo "$key" >> "$AUTH_KEYS"
@@ -46,37 +72,29 @@ for key in "${PUB_KEYS[@]}"; do
     fi
 done
 
-# 确保文件权限及所属权
 chmod 600 "$AUTH_KEYS"
 chown -R root:root /root/.ssh
 echo "-> 密钥目录与权限规范化完毕"
 
 # 6. 修改主 sshd_config 配置文件
 SSHD_CONFIG="/etc/ssh/sshd_config"
-
-# 备份原配置文件以防万一
 cp $SSHD_CONFIG "${SSHD_CONFIG}.bak_$(date +%F_%T)"
 
-# 允许 Root 登录 (替换或追加)
 sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' $SSHD_CONFIG
 grep -q "^PermitRootLogin yes" $SSHD_CONFIG || echo "PermitRootLogin yes" >> $SSHD_CONFIG
 
-# 允许密码登录
 sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' $SSHD_CONFIG
 grep -q "^PasswordAuthentication yes" $SSHD_CONFIG || echo "PasswordAuthentication yes" >> $SSHD_CONFIG
 
-# 开启公钥登录
 sed -i 's/^#*PubkeyAuthentication.*/PubkeyAuthentication yes/' $SSHD_CONFIG
 grep -q "^PubkeyAuthentication yes" $SSHD_CONFIG || echo "PubkeyAuthentication yes" >> $SSHD_CONFIG
 
 echo "-> 主 SSH 配置文件修改完毕"
 
-# 7. 【核心升级 2】强行清空子目录下的所有云配置干扰（不采用 sed 替换，避免漏掉顽固冲突）
+# 7. 强行清空子目录下的所有云配置干扰
 SSHD_CONFIG_D="/etc/ssh/sshd_config.d"
 if [ -d "$SSHD_CONFIG_D" ]; then
     echo "-> 检测到存在 sshd_config.d 目录，正在强行清理并移除可能存在的子文件冲突..."
-    
-    # 将可能存在的配置全部移除并放入单独的备份夹，防止其高优先级覆盖主配置
     mkdir -p /etc/ssh/sshd_config_d_bak
     if ls "$SSHD_CONFIG_D"/*.conf &>/dev/null; then
         mv "$SSHD_CONFIG_D"/*.conf /etc/ssh/sshd_config_d_bak/ 2>/dev/null
@@ -86,15 +104,12 @@ fi
 
 # 8. 自动判断并重启 SSH 服务
 echo "-> 正在重新加载并重启 SSH 服务..."
-
-# 新版 Ubuntu 24.04+ 必须优先刷新 systemd daemon 并重启 socket
 if systemctl list-units --type=socket | grep -q "ssh.socket"; then
     systemctl daemon-reload
     systemctl restart ssh.socket
     echo "-> 成功重启 ssh.socket (检测到新版托管机制)"
 fi
 
-# 传统的 service 状态检查与重启作为兜底/主服务重启
 if systemctl is-active --quiet ssh; then
     systemctl restart ssh
     echo "-> 成功重启 ssh 服务"
@@ -108,4 +123,4 @@ fi
 
 echo ""
 echo "✅ 配置全部完成！"
-echo "⚠️ 警告：请暂时不要关闭当前终端窗口！请立即新开一个本地终端，测试能否使用新生成的 ED25519 私钥登录。"
+echo "⚠️ 警告：请暂时不要关闭当前终端窗口！请立即新开一个本地终端，测试能否使用新生成的私钥或密码登录。"
