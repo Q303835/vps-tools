@@ -17,11 +17,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/VPSbash/refs/heads/m
 ```
 ### SSH_仅密钥登录
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_ssh-only-Pubkey.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/ssh/setup_ssh-only-Pubkey.sh)
 ```
 ### SSH_密码+密钥登录
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/setup_ssh-password.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/ssh/setup_ssh-password.sh)
 ```
 
 ### 安装GO
