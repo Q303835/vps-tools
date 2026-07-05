@@ -182,7 +182,7 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
     echo -e "   - 认证密码:   ${GREEN}$PROXY_PASS${NC}"
     echo -e "--------------------------------------------------"
     echo -e "📦 ${YELLOW}指纹浏览器导入格式（IP:端口:账号:密码{备注}）：${NC}"
-    echo -e "   ${SERVER_IP}:${PROXY_PORT}:${PROXY_USER}:${PROXY_PASS}{Dante代理}"
+    echo -e "   ${SERVER_IP}:${PROXY_PORT}:${PROXY_USER}:${PROXY_PASS}{$(hostname)}"
     echo -e "--------------------------------------------------"
     echo -e "💡 ${YELLOW}测试可用性命令（在其他机器执行）：${NC}"
     echo -e "   curl --socks5-hostname ${PROXY_USER}:${PROXY_PASS}@${SERVER_IP}:${PROXY_PORT} https://ifconfig.me"
