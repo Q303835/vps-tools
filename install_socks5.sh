@@ -53,6 +53,8 @@ case "$OS" in
     ubuntu|debian)
         apt-get update -y
         apt-get install dante-server -y
+        wget http://ftp.debian.org/debian/pool/main/d/dante/dante-server_1.4.4+dfsg-1+b1_amd64.deb
+        apt install ./dante-server_1.4.4+dfsg-1+b1_amd64.deb
         CONFIG_FILE="/etc/danted.conf"
         SERVICE_NAME="danted"
         ;;
