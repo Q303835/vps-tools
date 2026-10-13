@@ -7,7 +7,7 @@ apt install curl jq -y
 # 1. 获取 JSON 数据
 JSON_DATA=$(curl -s http://ip-api.com/json/)
 
-# 2. 提取并格式化 ISP (增加多服务商识别)
+# 2. 提取并格式化 ISP
 ISP=$(echo "$JSON_DATA" | jq -r '.isp')
 ISP_LOWER=$(echo "$ISP" | tr '[:upper:]' '[:lower:]')
 
@@ -21,13 +21,45 @@ elif echo "$ISP_LOWER" | grep -q "google"; then
     PROVIDER="GCP"
 elif echo "$ISP_LOWER" | grep -q "digitalocean"; then
     PROVIDER="DO"
+elif echo "$ISP_LOWER" | grep -q "linode\|akamai"; then
+    PROVIDER="Linode"
+elif echo "$ISP_LOWER" | grep -q "vultr\|choopa"; then
+    PROVIDER="Vultr"
 else
-    # 其他不常见的服务商，取第一个词，并删除末尾可能出现的逗号或句号
     PROVIDER=$(echo "$ISP" | awk '{print $1}' | tr -d ',.:;"')
 fi
 
-# 3. 提取并格式化城市 (去除所有空格，并全部转为小写)
+# 3. 提取并格式化城市 (去除所有空格，转为小写)
 CITY=$(echo "$JSON_DATA" | jq -r '.city' | tr -d ' ' | tr '[:upper:]' '[:lower:]')
+
+# --- 新增：常用 VPS 主机城市/数据中心映射规则 ---
+case "$CITY" in
+    # 欧洲地区
+    "frankfurtammain") CITY="frankfurt" ;;
+    "eemshaven") CITY="netherlands" ;; # GCP 荷兰
+    "stghislain") CITY="belgium" ;;    # GCP 比利时
+    "hamina") CITY="finland" ;;        # GCP 芬兰
+    "amsterdam") CITY="ams" ;;
+    "london") CITY="lon" ;;
+    
+    # 亚太地区
+    "hongkong") CITY="HK" ;;
+    "singapore") CITY="SG" ;;
+    "chuncheon") CITY="Chuncheon" ;;   # 甲骨文 韩国春川
+    "sydney") CITY="syd" ;;
+
+    # 美洲地区 (包含各大厂偏僻数据中心小镇)
+    "thedalles"|"boardman"|"umatilla") CITY="oregon" ;;      # 俄勒冈 (GCP/AWS)
+    "ashburn"|"boydton") CITY="virginia" ;;                  # 弗吉尼亚 (AWS/Azure)
+    "councilbluffs"|"desmoines") CITY="iowa" ;;              # 爱荷华 (GCP/Azure)
+    "monckscorner") CITY="southcarolina" ;;                  # 南卡罗来纳 (GCP)
+    "quincy") CITY="washington" ;;                           # 华盛顿州 (Azure)
+    "sanantonio") CITY="texas" ;;                            # 德州 (Azure)
+    "losangeles") CITY="la" ;;
+    "sanjose"|"santaclara") CITY="sanjose" ;;
+    "newyork"|"newyorkcity") CITY="ny" ;;
+esac
+# ---------------------------------
 
 # 4. 自动识别 CPU 架构
 ARCH=$(uname -m)
