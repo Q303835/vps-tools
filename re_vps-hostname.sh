@@ -44,6 +44,7 @@ case "$CITY" in
     "hamina") CITY="finland" ;;        
     "amsterdam") CITY="amsterdam" ;;
     "london") CITY="london" ;;
+    "gävle") CITY="stockholm" ;;
     
     # 亚太地区
     "hongkong") CITY="hk" ;;
