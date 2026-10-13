@@ -15,6 +15,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads
 ```
 bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/VPSbash/refs/heads/main/set-name.sh)
 ```
+```
+bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/re_vps-hostname.sh)
+```
+
 ### SSH_仅密钥登录
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/ssh/setup_ssh-only-Pubkey.sh)
