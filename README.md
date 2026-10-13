@@ -15,6 +15,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads
 ```
 bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/VPSbash/refs/heads/main/set-name.sh)
 ```
+###### 推荐
 ```
 bash <(curl -fsSL https://raw.githubusercontent.com/Q303835/vps-tools/refs/heads/main/re_vps-hostname.sh)
 ```
