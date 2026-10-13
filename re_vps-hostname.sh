@@ -29,7 +29,7 @@ else
     PROVIDER=$(echo "$ISP" | awk '{print $1}' | tr -d ',.:;"')
 fi
 
-# 3. 提取国家代码 (例如 DE, US, HK 等)
+# 3. 提取国家代码 (例如 DE, US, HK, SG 等)
 COUNTRY=$(echo "$JSON_DATA" | jq -r '.countryCode')
 
 # 4. 提取并格式化城市 (去除所有空格，转为小写)
@@ -48,6 +48,7 @@ case "$CITY" in
     # 亚太地区
     "hongkong") CITY="hk" ;;
     "singapore") CITY="sg" ;;
+    "tokyo") CITY="tyo" ;;
     "chuncheon") CITY="chuncheon" ;;
     "sydney") CITY="syd" ;;
 
@@ -74,8 +75,16 @@ else
     SYS_ARCH="$ARCH"
 fi
 
-# 6. 拼接带国家代码的基础主机名 (例如: Oracle-DE-frankfurt-ARM)
-BASE_HOSTNAME="${PROVIDER}-${COUNTRY}-${CITY}-${SYS_ARCH}"
+# 6. 拼接基础主机名 (去重逻辑)
+# 将城市名转为大写，判断是否和国家代码一致
+CITY_UPPER=$(echo "$CITY" | tr '[:lower:]' '[:upper:]')
+if [ "$CITY_UPPER" = "$COUNTRY" ]; then
+    # 如果一致 (例如 HK 和 hk，SG 和 sg)，则省略城市部分
+    BASE_HOSTNAME="${PROVIDER}-${COUNTRY}-${SYS_ARCH}"
+else
+    # 如果不一致 (例如 DE 和 frankfurt)，则保留国家和城市
+    BASE_HOSTNAME="${PROVIDER}-${COUNTRY}-${CITY}-${SYS_ARCH}"
+fi
 
 # 7. 交互式确认编号
 echo "------------------------------------------"
