@@ -29,39 +29,42 @@ else
     PROVIDER=$(echo "$ISP" | awk '{print $1}' | tr -d ',.:;"')
 fi
 
-# 3. 提取并格式化城市 (去除所有空格，转为小写)
+# 3. 提取国家代码 (例如 DE, US, HK 等)
+COUNTRY=$(echo "$JSON_DATA" | jq -r '.countryCode')
+
+# 4. 提取并格式化城市 (去除所有空格，转为小写)
 CITY=$(echo "$JSON_DATA" | jq -r '.city' | tr -d ' ' | tr '[:upper:]' '[:lower:]')
 
-# --- 新增：常用 VPS 主机城市/数据中心映射规则 ---
+# --- 常用 VPS 主机城市/数据中心映射规则 ---
 case "$CITY" in
     # 欧洲地区
     "frankfurtammain") CITY="frankfurt" ;;
-    "eemshaven") CITY="netherlands" ;; # GCP 荷兰
-    "stghislain") CITY="belgium" ;;    # GCP 比利时
-    "hamina") CITY="finland" ;;        # GCP 芬兰
+    "eemshaven") CITY="netherlands" ;; 
+    "stghislain") CITY="belgium" ;;    
+    "hamina") CITY="finland" ;;        
     "amsterdam") CITY="ams" ;;
     "london") CITY="lon" ;;
     
     # 亚太地区
-    "hongkong") CITY="HK" ;;
-    "singapore") CITY="SG" ;;
-    "chuncheon") CITY="Chuncheon" ;;   # 甲骨文 韩国春川
+    "hongkong") CITY="hk" ;;
+    "singapore") CITY="sg" ;;
+    "chuncheon") CITY="chuncheon" ;;
     "sydney") CITY="syd" ;;
 
-    # 美洲地区 (包含各大厂偏僻数据中心小镇)
-    "thedalles"|"boardman"|"umatilla") CITY="oregon" ;;      # 俄勒冈 (GCP/AWS)
-    "ashburn"|"boydton") CITY="virginia" ;;                  # 弗吉尼亚 (AWS/Azure)
-    "councilbluffs"|"desmoines") CITY="iowa" ;;              # 爱荷华 (GCP/Azure)
-    "monckscorner") CITY="southcarolina" ;;                  # 南卡罗来纳 (GCP)
-    "quincy") CITY="washington" ;;                           # 华盛顿州 (Azure)
-    "sanantonio") CITY="texas" ;;                            # 德州 (Azure)
+    # 美洲地区 
+    "thedalles"|"boardman"|"umatilla") CITY="oregon" ;;      
+    "ashburn"|"boydton") CITY="virginia" ;;                  
+    "councilbluffs"|"desmoines") CITY="iowa" ;;              
+    "monckscorner") CITY="southcarolina" ;;                  
+    "quincy") CITY="washington" ;;                           
+    "sanantonio") CITY="texas" ;;                            
     "losangeles") CITY="la" ;;
     "sanjose"|"santaclara") CITY="sanjose" ;;
     "newyork"|"newyorkcity") CITY="ny" ;;
 esac
 # ---------------------------------
 
-# 4. 自动识别 CPU 架构
+# 5. 自动识别 CPU 架构
 ARCH=$(uname -m)
 if [ "$ARCH" = "aarch64" ]; then
     SYS_ARCH="ARM"
@@ -71,10 +74,10 @@ else
     SYS_ARCH="$ARCH"
 fi
 
-# 5. 拼接基础主机名
-BASE_HOSTNAME="${PROVIDER}-${CITY}-${SYS_ARCH}"
+# 6. 拼接带国家代码的基础主机名 (例如: Oracle-DE-frankfurt-ARM)
+BASE_HOSTNAME="${PROVIDER}-${COUNTRY}-${CITY}-${SYS_ARCH}"
 
-# 6. 交互式确认编号
+# 7. 交互式确认编号
 echo "------------------------------------------"
 read -p "当前基础主机名为 [ ${BASE_HOSTNAME} ]。请输入机器编号 (例如输入 2 会变成 ${BASE_HOSTNAME}-2，不加编号请直接回车): " SUFFIX
 
@@ -84,10 +87,10 @@ else
     NEW_HOSTNAME="${BASE_HOSTNAME}"
 fi
 
-# 7. 设置新主机名
+# 8. 设置新主机名
 hostnamectl set-hostname "$NEW_HOSTNAME"
 
-# 8. 更新 /etc/hosts 文件，防止 sudo 报错
+# 9. 更新 /etc/hosts 文件，防止 sudo 报错
 sed -i "s/127.0.1.1.*/127.0.1.1\t$NEW_HOSTNAME/g" /etc/hosts
 
 echo "=========================================="
