@@ -42,13 +42,13 @@ case "$CITY" in
     "eemshaven") CITY="netherlands" ;; 
     "stghislain") CITY="belgium" ;;    
     "hamina") CITY="finland" ;;        
-    "amsterdam") CITY="ams" ;;
-    "london") CITY="lon" ;;
+    "amsterdam") CITY="amsterdam" ;;
+    "london") CITY="london" ;;
     
     # 亚太地区
     "hongkong") CITY="hk" ;;
     "singapore") CITY="sg" ;;
-    "tokyo") CITY="tyo" ;;
+    "tokyo") CITY="tokyo" ;;
     "chuncheon") CITY="chuncheon" ;;
     "sydney") CITY="syd" ;;
 
