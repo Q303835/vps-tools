@@ -26,8 +26,8 @@ else
     PROVIDER=$(echo "$ISP" | awk '{print $1}' | tr -d ',.:;"')
 fi
 
-# 3. 提取并格式化城市
-CITY=$(echo "$JSON_DATA" | jq -r '.city' | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+# 3. 提取并格式化城市 (去除所有空格，并全部转为小写)
+CITY=$(echo "$JSON_DATA" | jq -r '.city' | tr -d ' ' | tr '[:upper:]' '[:lower:]')
 
 # 4. 自动识别 CPU 架构
 ARCH=$(uname -m)
